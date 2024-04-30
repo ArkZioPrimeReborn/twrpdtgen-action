@@ -21,34 +21,42 @@ jobs:
           sudo apt install python3-pip cpio -y
           pip3 install twrpdtgen
 
-      - name: Download Image
+      - name: Download Image or LZ4
         if: github.event.inputs.image_url != ''
         run: |
-          curl ${{ github.event.inputs.image_url }}
+          curl -o device_image_or_lz4 ${{ github.event.inputs.image_url }}
 
       - name: Find Image
         id: find_image
         run: |
-          if [ -f *.img ]; then
-            find . -type f -iname "*.lz4" -exec lz4 -d {} \;
-            cd "$(dirname "$(find . -type f \( -iname "recovery.img" -o -iname "boot.img" \))")"
-            img_file=$(find . -type f \( -iname "recovery.img" -o -iname "boot.img" \))
-            if [ -z "$img_file" ]; then
-              echo "Error: Image file not found"
-              exit 1
+          if [ -f "device_image_or_lz4" ]; then
+            if file device_image_or_lz4 | grep -q "LZ4 compressed data"; then
+              lz4 -d device_image_or_lz4
+              img_file=$(find . -type f \( -iname "recovery.img" -o -iname "boot.img" \))
+              if [ -z "$img_file" ]; then
+                echo "Error: Image file not found after decompression"
+                exit 1
+              else
+                echo "::set-output name=image_path::$img_file"
+              fi
+            elif file device_image_or_lz4 | grep -q "Android sparse image"; then
+              mv device_image_or_lz4 device_image.img
+              echo "::set-output name=image_path::device_image.img"
             else
-              echo "::set-output name=image_path::$img_file"
+              echo "Error: Unsupported file format"
+              exit 1
             fi
           else
-            echo "::set-output name=image_path::device_image.img"
+            echo "Error: Image or LZ4 file not found"
+            exit 1
           fi
-         
+
       - name: Get Device Codename
         id: get_codename
         run: |
           manufacturer=$(python3 -c "from twrpdtgen.device_tree import DeviceTree; device_tree = DeviceTree('${{ steps.find_image.outputs.image_path }}'); print(device_tree.device['Codename'])")
           echo "::set-output name=codename::$manufacturer"
-          
+
       - name: Generate Device Tree
         run: |
           python3 -m twrpdtgen ${{ steps.find_image.outputs.image_path }} -o output/${{ steps.get_codename.outputs.codename }}
