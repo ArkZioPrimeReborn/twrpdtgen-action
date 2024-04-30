@@ -24,12 +24,12 @@ jobs:
       - name: Download Image
         if: github.event.inputs.image_url != ''
         run: |
-          curl -o device_image.img ${{ github.event.inputs.image_url }}
+          curl ${{ github.event.inputs.image_url }}
 
       - name: Find Image
         id: find_image
         run: |
-          if [ -f "device_image.img" ]; then
+          if [ -f "*.img" ]; then
             find . -type f -iname "*.lz4" -exec lz4 -d {} \;
             cd "$(dirname "$(find . -type f \( -iname "recovery.img" -o -iname "boot.img" \))")"
             img_file=$(find . -type f \( -iname "recovery.img" -o -iname "boot.img" \))
