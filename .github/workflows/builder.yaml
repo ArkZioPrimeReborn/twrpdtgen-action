@@ -1,0 +1,62 @@
+name: Generate and Upload TWRP Device Tree
+
+on:
+  workflow_dispatch:
+
+jobs:
+  generate_and_upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install python3-pip cpio -y
+          pip3 install twrpdtgen
+
+      - name: Find Image
+        id: find_image
+        run: |
+          find . -type f -iname "*.lz4" -exec lz4 -d {} \;
+          find . -type f \( -iname "recovery.img" -o -iname "boot.img" \) -exec echo "::set-output name=image_path::{}" \;
+
+      - name: Generate Device Tree
+        run: |
+          python3 -m twrpdtgen ${{ steps.find_image.outputs.image_path }}
+
+      - name: Get Device Codename
+        id: get_codename
+        run: |
+          manufacturer=$(python3 -c "from twrpdtgen.device_tree import DeviceTree; device_tree = DeviceTree('${{ steps.find_image.outputs.image_path }}'); print(device_tree.device['Codename'])")
+          echo "::set-output name=codename::$manufacturer"
+
+      - name: Create Repository
+        id: create_repo
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const response = await github.repos.createForAuthenticatedUser({
+              name: `twrp-device-tree-${{ steps.get_codename.outputs.codename }}`,
+              private: true
+            })
+            console.log(response.data)
+
+      - name: Clone Repository
+        uses: actions/checkout@v2
+        with:
+          repository: ${{ steps.create_repo.outputs.repository_url }}
+
+      - name: Move Device Tree Files
+        run: |
+          mkdir -p ${{ github.workspace }}/twrp-device-tree
+          mv output/manufacturer/codename/* ${{ github.workspace }}/twrp-device-tree
+          cd ${{ github.workspace }}/twrp-device-tree
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git add .
+          git commit -m "Add TWRP Device Tree"
+          git push origin main
