@@ -29,7 +29,7 @@ jobs:
       - name: Find Image
         id: find_image
         run: |
-          if [ -f "*.img" ]; then
+          if [ -f *.img ]; then
             find . -type f -iname "*.lz4" -exec lz4 -d {} \;
             cd "$(dirname "$(find . -type f \( -iname "recovery.img" -o -iname "boot.img" \))")"
             img_file=$(find . -type f \( -iname "recovery.img" -o -iname "boot.img" \))
@@ -42,7 +42,7 @@ jobs:
           else
             echo "::set-output name=image_path::device_image.img"
           fi
-
+         
       - name: Get Device Codename
         id: get_codename
         run: |
