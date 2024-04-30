@@ -48,7 +48,7 @@ jobs:
         run: |
           manufacturer=$(python3 -c "from twrpdtgen.device_tree import DeviceTree; device_tree = DeviceTree('${{ steps.find_image.outputs.image_path }}'); print(device_tree.device['Codename'])")
           echo "::set-output name=codename::$manufacturer"
-
+          
       - name: Generate Device Tree
         run: |
           python3 -m twrpdtgen ${{ steps.find_image.outputs.image_path }} -o output/${{ steps.get_codename.outputs.codename }}
