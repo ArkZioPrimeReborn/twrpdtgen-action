@@ -31,7 +31,7 @@ jobs:
         run: |
           if [ -f "device_image.img" ]; then
             find . -type f -iname "*.lz4" -exec lz4 -d {} \;
-            cd $(dirname $(find . -type f \( -iname "recovery.img" -o -iname "boot.img" \)))
+            cd "$(dirname "$(find . -type f \( -iname "recovery.img" -o -iname "boot.img" \))")"
             img_file=$(find . -type f \( -iname "recovery.img" -o -iname "boot.img" \))
             if [ -z "$img_file" ]; then
               echo "Error: Image file not found"
@@ -53,4 +53,30 @@ jobs:
         run: |
           python3 -m twrpdtgen ${{ steps.find_image.outputs.image_path }} -o output/${{ steps.get_codename.outputs.codename }}
 
-      # Rest of the workflow to create the repository, clone it, move files, etc.
+      - name: Create Repository
+        id: create_repo
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const response = await github.repos.createForAuthenticatedUser({
+              name: `twrp-device-tree-${{ steps.get_codename.outputs.codename }}`,
+              private: true
+            })
+            console.log(response.data)
+
+      - name: Clone Repository
+        uses: actions/checkout@v2
+        with:
+          repository: ${{ steps.create_repo.outputs.repository_url }}
+
+      - name: Move Device Tree Files
+        run: |
+          mkdir -p ${{ github.workspace }}/twrp-device-tree
+          mv output/${{ steps.get_codename.outputs.codename }}/* ${{ github.workspace }}/twrp-device-tree
+          cd ${{ github.workspace }}/twrp-device-tree
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git add .
+          git commit -m "Add TWRP Device Tree"
+          git push origin main
