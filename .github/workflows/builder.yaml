@@ -2,6 +2,10 @@ name: Generate and Upload TWRP Device Tree
 
 on:
   workflow_dispatch:
+    inputs:
+      image_url:
+        description: 'Download URL of the image or LZ4 file'
+        required: false
 
 jobs:
   generate_and_upload:
@@ -17,11 +21,27 @@ jobs:
           sudo apt install python3-pip cpio -y
           pip3 install twrpdtgen
 
+      - name: Download Image
+        if: github.event.inputs.image_url != ''
+        run: |
+          curl -o device_image.img ${{ github.event.inputs.image_url }}
+
       - name: Find Image
         id: find_image
         run: |
-          find . -type f -iname "*.lz4" -exec lz4 -d {} \;
-          find . -type f \( -iname "recovery.img" -o -iname "boot.img" \) -exec echo "::set-output name=image_path::{}" \;
+          if [ -f "device_image.img" ]; then
+            find . -type f -iname "*.lz4" -exec lz4 -d {} \;
+            cd $(dirname $(find . -type f \( -iname "recovery.img" -o -iname "boot.img" \)))
+            img_file=$(find . -type f \( -iname "recovery.img" -o -iname "boot.img" \))
+            if [ -z "$img_file" ]; then
+              echo "Error: Image file not found"
+              exit 1
+            else
+              echo "::set-output name=image_path::$img_file"
+            fi
+          else
+            echo "::set-output name=image_path::device_image.img"
+          fi
 
       - name: Get Device Codename
         id: get_codename
@@ -33,4 +53,4 @@ jobs:
         run: |
           python3 -m twrpdtgen ${{ steps.find_image.outputs.image_path }} -o output/${{ steps.get_codename.outputs.codename }}
 
-      # Resto del flujo de trabajo para crear el repositorio, clonarlo y mover los archivos, etc.
+      # Rest of the workflow to create the repository, clone it, move files, etc.
