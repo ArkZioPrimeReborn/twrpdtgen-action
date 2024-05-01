@@ -22,7 +22,6 @@ jobs:
         sudo apt update
         sudo apt upgrade
         sudo apt -y install python python2 python3 python3-pip cpio wget
-        sudo apt upgrade
         sudo apt install lz4
         pip3 install twrpdtgen
         mkdir dt
@@ -32,13 +31,37 @@ jobs:
         aria2c "${{ github.event.inputs.IMG_URL }}"
         ls
       
+    - name: Check for LZ4 file
+      run: |
+        if [[ -e *.lz4 ]]; then
+          echo "LZ4 file found"
+        else
+          echo "No LZ4 file found"
+          exit 1
+        fi
+      
+    - name: Decompress LZ4 file
+      run: |
+        lz4 -d *.lz4
+      
+    - name: Search for image file
+      run: |
+        IMG_FILE=$(find ./dt -type f \( -iname "*.img" -o -iname "*.bin" \))
+        if [[ -n "$IMG_FILE" ]]; then
+          echo "Image file found: $IMG_FILE"
+        else
+          echo "No image file found"
+          exit 1
+        fi
+      
     - name: Start build
       run: |
-        lz4 -d dt/ *.img
-        python3 -m twrpdtgen -o dt/ *.img
+        python3 -m twrpdtgen -o dt/ "$IMG_FILE"
+      
     - name: ZIP device tree
       run: |
         zip -r DeviceTree.zip ./dt
+      
     - name: Upload to Release
       uses: softprops/action-gh-release@v1
       with:
