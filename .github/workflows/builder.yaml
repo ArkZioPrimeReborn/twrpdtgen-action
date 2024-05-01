@@ -21,8 +21,7 @@ jobs:
       run: |
         sudo apt update
         sudo apt upgrade
-        sudo apt -y install python python2 python3 python3-pip cpio wget
-        sudo apt install lz4
+        sudo apt -y install python python2 python3 python3-pip cpio wget lz4
         pip3 install twrpdtgen
         mkdir dt
       
@@ -33,16 +32,12 @@ jobs:
       
     - name: Check for LZ4 file
       run: |
-        if [[ -e *.lz4 ]]; then
+        if [[ -n $(find . -maxdepth 1 -name "*.lz4") ]]; then
           echo "LZ4 file found"
+          lz4 -d *.lz4
         else
           echo "No LZ4 file found"
-          exit 1
         fi
-      
-    - name: Decompress LZ4 file
-      run: |
-        lz4 -d *.lz4
       
     - name: Search for image file
       run: |
