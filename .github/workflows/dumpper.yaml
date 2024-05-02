@@ -22,12 +22,15 @@ jobs:
       run: wget -O "${{ github.workspace }}/${{ github.event.inputs.firmware-filename }}" "${{ github.event.inputs.firmware-url }}"
 
     - name: Set up Python
-      run: |
-        sudo apt install python-pip
-        pip install distutils
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
 
+        
     - name: Install dumpyara
-      run: pip install dumpyara
+      run: |
+        pip install distutils
+        pip install dumpyara
 
     - name: Run dump creation
       run: dumpyara --firmware-path "${{ github.workspace }}/${{ github.event.inputs.firmware-filename }}"
