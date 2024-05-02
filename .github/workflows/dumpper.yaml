@@ -25,8 +25,7 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: '3.x'
-      run: |
-        pip install distutils
+      run: pip install distutils
 
     - name: Install dumpyara
       run: pip install dumpyara
