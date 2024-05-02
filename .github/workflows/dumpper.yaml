@@ -1,0 +1,42 @@
+name: Firmware Dump
+
+on:
+  workflow_dispatch:
+    inputs:
+      firmware-url:
+        description: 'URL del firmware'
+        required: true
+      firmware-filename:
+        description: 'Nombre del archivo de firmware'
+        required: true
+
+jobs:
+  create_dump:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      
+    - name: Download firmware
+      run: wget -O "${{ github.workspace }}/${{ github.event.inputs.firmware-filename }}" "${{ github.event.inputs.firmware-url }}"
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install dumpyara
+      run: pip install dumpyara
+
+    - name: Run dump creation
+      run: dumpyara --firmware-path "${{ github.workspace }}/${{ github.event.inputs.firmware-filename }}"
+
+    - name: Compress dump into zip
+      run: zip -r firmware_dump.zip dump_directory/
+
+    - name: Upload firmware dump as artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: firmware_dump
+        path: firmware_dump.zip
