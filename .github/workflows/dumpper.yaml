@@ -26,10 +26,11 @@ jobs:
       with:
         python-version: '3.x'
 
+    - name: Install python3-distutils
+      run: sudo apt-get install -y python3-distutils
         
     - name: Install dumpyara
       run: |
-        pip install distutils
         pip install dumpyara
 
     - name: Run dump creation
