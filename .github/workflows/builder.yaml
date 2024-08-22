@@ -53,7 +53,7 @@ jobs:
       
     - name: Start build
       run: |
-        python3 -m twrpdtgen -o *.img
+        python3 -m twrpdtgen -o vendor_boot.img
       
     - name: ZIP device tree
       run: |
